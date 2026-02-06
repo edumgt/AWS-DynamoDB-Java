@@ -1,98 +1,102 @@
-## 수업내용
-DynamoDB(NoSQL)와 RDBMS(Relational Database Management System)는 데이터 저장 방식, 확장성, 유연성, 일관성 모델 등에서 중요한 차이가 있습니다. 
+# AWS DynamoDB Java CLI 예제
 
-## 차이점
-| 항목          | DynamoDB (NoSQL)                           | RDBMS (예: MySQL, PostgreSQL)           |
-| ----------- | ------------------------------------------ | -------------------------------------- |
-| **데이터 모델**  | Key-Value / Document 기반                    | 테이블, 행(Row), 열(Column)                 |
-| **스키마**     | **스키마 없음 (유연)**<br>각 아이템이 다른 속성 가질 수 있음    | **엄격한 스키마**<br>모든 행은 같은 구조             |
-| **확장성**     | **수평 확장 (Scale-out)**<br>노드 추가로 처리량 증가     | **수직 확장 (Scale-up)**<br>CPU, RAM 업그레이드 |
-| **트랜잭션**    | 제한적 트랜잭션 지원<br>ACID 일부 보장 (2020 이후 점점 강화됨) | 강력한 ACID 트랜잭션 지원                       |
-| **쿼리 언어**   | 쿼리 제한적 (PK, SK 위주), 필터 지원<br>SQL 아님        | SQL 사용 가능, 복잡한 조인/조건 가능                |
-| **인덱싱**     | 기본 키(PK, SK), GSI, LSI 사용                  | PK, FK, 다중 인덱스 자유롭게 생성 가능              |
-| **관계(조인)**  | **조인 불가**, 앱 레벨에서 처리해야 함                   | **조인 가능** (INNER, OUTER 등)             |
-| **속도 및 성능** | 대량 트래픽에 강함, 밀리초 단위 응답                      | 정규화된 복잡 쿼리에 강함                         |
-| **운영/관리**   | 완전 관리형 (AWS가 운영)                           | DB 관리 필요 (백업, 튜닝 등)                    |
-
-
-## 🔧 Features
-- Add new employees to AWS DynamoDB
-- View employee details by ID
-- Delete employee records
-- List all employees stored in the cloud
+Java(AWS SDK v2)로 **DynamoDB 직원(Employee) 데이터**를 CRUD하는 콘솔 프로젝트입니다.  
+이 문서는 프로젝트 구조/실행 방법/권한 설정/트러블슈팅을 한 번에 볼 수 있도록 재정리했습니다.
 
 ---
 
-## 🧰 Tech Stack
+## 1) 프로젝트 개요
 
-- Java (JDK 8+)
-- AWS DynamoDB (NoSQL)
-- AWS SDK for Java v2
-- Maven (for dependency management)
+- 목적: Java 애플리케이션에서 DynamoDB 테이블에 데이터 추가/조회/삭제/전체 조회를 수행
+- 실행 형태: 콘솔 메뉴 기반 CLI
+- 데이터 모델: `id` + `name` 복합 키(Partition Key + Sort Key) 기반 조회/삭제
+
+### 제공 기능
+
+1. 직원 추가 (`PutItem`)
+2. 직원 단건 조회 (`GetItem`)
+3. 직원 삭제 (`DeleteItem`)
+4. 직원 전체 조회 (`Scan`)
 
 ---
 
-## 🚀 Setup Instructions
+## 2) 기술 스택
 
-1. **Install Java and Maven**
-2. **Set up AWS CLI** and configure credentials:
-   ```bash
-   aws configure
+- Java 17
+- Maven
+- AWS SDK for Java v2 (`dynamodb`, `auth`, `regions`)
+- SLF4J(Simple)
 
+---
 
-## maven clean , package 등의 작업 후
-## MainApp.java Run
-## Error:
-? An error occurred: User: arn:aws:iam::086015456585:user/DevUser0002 is not authorized to perform: dynamodb:GetItem on resource: arn:aws:dynamodb:AP_NORTHEAST_2:086015456585:table/Employees because no identity-based policy allows the dynamodb:GetItem action (Service: DynamoDb, Status Code: 400, Request ID: UFTID00VACDLSHMR64KDB87APFVV4KQNSO5AEMVJF66Q9ASUAAJG) 
+## 3) 코드 구조
 
-## Dynamo DB 설치
-![alt text](image.png)
+```text
+src/main/java/
+├── MainApp.java
+└── com/cognizant/
+    ├── Employee.java
+    └── EmployeeManager.java
+```
 
-## 테이블 생성 - 소스의 내용에 부합하도록
-![alt text](image-1.png)
+- `MainApp`
+  - 콘솔 입력/메뉴 처리
+  - 사용자 입력값을 받아 `EmployeeManager` 메서드 호출
+- `Employee`
+  - 직원 엔티티 (`id`, `name`, `position`)
+- `EmployeeManager`
+  - DynamoDB 클라이언트 생성
+  - `addEmployee`, `viewEmployee`, `deleteEmployee`, `listEmployees` 구현
 
+---
 
-## 약간의 시간 소요 후 생성확인
-![alt text](image-2.png)
+## 4) DynamoDB 테이블 설계
 
-## Error - dynamodb:GetItem on resource: arn:aws:dynamodb:AP_NORTHEAST_2:086015456585:table/Employees 부분 해결
-## 권한 탭 클릭
-![alt text](image-3.png)
+현재 코드 기준으로 테이블은 아래와 같이 맞추는 것을 권장합니다.
 
-## 테이블 정책 생성 클릭
-![alt text](image-4.png)
+- 테이블명: `Employees`
+- 파티션 키(Partition Key): `id` (String)
+- 정렬 키(Sort Key): `name` (String)
 
-## 정책예제 클릭
-![alt text](image-5.png)
-https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/rbac-examples.html
+> `viewEmployee`, `deleteEmployee`가 `id + name` 복합 키를 사용하므로 정렬 키까지 포함된 테이블이 안전합니다.
 
-의 중간에 json 유형 복사
+---
 
-![alt text](image-6.png)
+## 5) 실행 전 준비
 
-## 복붙 후 수정
-![alt text](image-7.png)
-![alt text](image-8.png)
+### 5-1. 필수 설치
 
-## 오류 없음 확인 및 Action 의 CRUD 부분 체크
-![alt text](image-9.png)
+- JDK 17+
+- Maven 3.8+
+- AWS CLI
 
-## DynamoDB 테이블에 직접 붙이는 Resource Policy는 지원되지 않음
-## IAM User 에 직접 붙여야함.
+### 5-2. AWS 자격 증명 설정
 
-## IAM 으로 이동
-![alt text](image-10.png)
+```bash
+aws configure
+```
 
-## 팀 - 권한 선택
-![alt text](image-11.png)
+입력값 예시(실제 값 사용):
+- AWS Access Key ID
+- AWS Secret Access Key
+- Default region name (예: `ap-northeast-2`)
+- Default output format (`json`)
 
-## 권한 - 인라인정책
-![alt text](image-12.png)
+### 5-3. 권한(IAM) 설정
 
-## json 형태
-![alt text](image-13.png)
+최소한 아래 DynamoDB 액션은 허용되어야 합니다.
 
-## json 내용
+- `dynamodb:GetItem`
+- `dynamodb:BatchGetItem`
+- `dynamodb:PutItem`
+- `dynamodb:UpdateItem`
+- `dynamodb:DeleteItem`
+- `dynamodb:Scan`
+- (선택) `dynamodb:DescribeTable`
+
+정책 예시(마스킹 템플릿):
+
+```json
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -104,141 +108,103 @@ https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/rbac-examples.h
         "dynamodb:BatchGetItem",
         "dynamodb:PutItem",
         "dynamodb:UpdateItem",
-        "dynamodb:DeleteItem"
+        "dynamodb:DeleteItem",
+        "dynamodb:Scan",
+        "dynamodb:DescribeTable"
       ],
-      "Resource": "arn:aws:dynamodb:ap-northeast-2:086015456585:table/Employees"
+      "Resource": "arn:aws:dynamodb:<REGION>:<ACCOUNT_ID>:table/Employees"
     }
   ]
 }
+```
 
+---
 
-## 입력
-![alt text](image-14.png)
+## 6) 빌드 및 실행
 
-## 생성
-![alt text](image-15.png)
-![alt text](image-16.png)
+### 빌드
 
-## 생성 후 확인
-![alt text](image-17.png)
+```bash
+mvn clean package
+```
 
-## 모듈 재실행
-1~5 까지 실행할 모듈을 선택하세요: 1
-ID: 11111
-Name: david 
-Age: 30
-Position: IT
-Salary: 2000
-? An error occurred: One or more parameter values were invalid: Type mismatch for key id expected: S actual: N (Service: DynamoDb, Status Code: 400, Request ID: IV368NONK9H6N8N5FDREVC7TLVVV4KQNSO5AEMVJF66Q9ASUAAJG)
+### 실행(권장)
 
-## DynamoDB 테이블의 파티션 키(id)의 타입이 문자열(String, S)인데,
-## Java 코드에서 숫자(Number, N)로 넣고 있어서 생기는 오류
+```bash
+mvn -q exec:java -Dexec.mainClass=MainApp
+```
 
-## 현재 소스 보면
-public class Employee {
-    private int id;
-    private String name;
-    private int age;
-    private String position;
-    private double salary;
+---
 
-    public Employee(int id, String name, int age, String position, double salary) {
-        this.id = id;
-        this.name = name;
-        this.age = age;
-        this.position = position;
-        this.salary = salary;
+## 7) 사용 흐름 예시
 
-## 위에서 private int id; 부분 String 으로 수정
-## 관련 소스 부분 도 수정
-                    case 1 -> {
-                        System.out.print("ID: ");
-                        String id = sc.nextLine();
+1. 프로그램 실행
+2. `1` 선택 후 `ID`, `Name`, `Position` 입력
+3. `2` 선택 후 `ID`, `Name`으로 단건 조회
+4. `3` 선택 후 `ID`, `Name`으로 삭제
+5. `4` 선택 후 전체 목록 확인
+6. `5` 선택 후 종료
 
-## 수업 내용에서는 이미 수정 소스로 배포
-## AWS CLI 로 체크
-aws dynamodb describe-table --table-name Employees
+---
 
-## Error
-An error occurred (AccessDeniedException) when calling the DescribeTable operation: User: arn:aws:iam::086015456585:user/DevUser0002 is not authorized to perform: dynamodb:DescribeTable on resource: arn:aws:dynamodb:ap-northeast-2:086015456585:table/Employees because no identity-based policy allows the dynamodb:DescribeTable action
+## 8) 자주 발생하는 오류 & 해결
 
-## Action 의 권한 부족으로 다음과 같이 추가
-"Action": [
-        "dynamodb:DescribeTable",
-        "dynamodb:GetItem",
-        "dynamodb:BatchGetItem",
-        "dynamodb:PutItem",
-        "dynamodb:UpdateItem",
-        "dynamodb:DeleteItem",
-        "dynamodb:Scan",
-        "dynamodb:Query"
-      ],
+### 8-1. AccessDeniedException
 
-## 부여한 정책에 추가 및 수정
-![alt text](image-19.png)
+증상 예시:
+- `not authorized to perform dynamodb:GetItem`
+- `not authorized to perform dynamodb:DescribeTable`
 
-## IAM 작업후 반영 시간 소요 필요 1~2분 정도 대기
-## aws dynamodb describe-table --table-name Employees 재실행
-## 기본 정보
-{
-    "Table": {
-        "AttributeDefinitions": [
-            {
-                "AttributeName": "id",
-                "AttributeType": "S"
-    "Table": {
-        "AttributeDefinitions": [
-            {
-                "AttributeName": "id",
-                "AttributeType": "S"
-        "AttributeDefinitions": [
-            {
-                "AttributeName": "id",
-                "AttributeType": "S"
-            {
-                "AttributeName": "id",
-                "AttributeType": "S"
-                "AttributeName": "id",
-                "AttributeType": "S"
-            },
-                "AttributeType": "S"
-            },
-            {
-                "AttributeName": "name",
-            },
-            {
-                "AttributeName": "name",
-                "AttributeType": "S"
-            }
-            {
-                "AttributeName": "name",
-                "AttributeType": "S"
-            }
-                "AttributeName": "name",
-                "AttributeType": "S"
-            }
-        ],
-                "AttributeType": "S"
-            }
-        ],
-        "TableName": "Employees",
-        "KeySchema": [
-        ],
-        "TableName": "Employees",
-        "KeySchema": [
-        "TableName": "Employees",
-        "KeySchema": [
-            {
-        "KeySchema": [
-            {
-            {
-                "AttributeName": "id",
-                "AttributeName": "id",
-                "KeyType": "HASH"
-            },
-            {
-                "AttributeName": "name",
-                "KeyType": "RANGE"
+해결:
+- IAM 사용자/역할에 필요한 DynamoDB 액션이 포함되어 있는지 확인
+- 리소스 ARN이 실제 리전/계정/테이블명과 일치하는지 확인
+- AWS CLI의 현재 계정/프로파일이 실행 대상과 일치하는지 확인
 
+### 8-2. 키 타입 불일치(Type mismatch)
 
+증상 예시:
+- `Type mismatch for key id expected: S actual: N`
+
+원인:
+- DynamoDB 테이블 키 타입(String)과 Java 코드 입력 타입이 불일치
+
+해결:
+- 테이블 키 정의와 코드의 AttributeValue 타입(`fromS`, `fromN`)을 일치시킴
+
+---
+
+## 9) DynamoDB vs RDBMS 간단 비교
+
+| 항목 | DynamoDB (NoSQL) | RDBMS |
+|---|---|---|
+| 데이터 모델 | Key-Value / Document | Table / Row / Column |
+| 스키마 | 유연(스키마리스) | 엄격한 스키마 |
+| 확장성 | 수평 확장(Scale-out) | 주로 수직 확장(Scale-up) |
+| 조인 | 직접 조인 없음 | SQL 조인 가능 |
+| 운영 | 완전관리형(Managed) | 운영/튜닝 관리 필요 |
+
+---
+
+## 10) 민감정보(보안) 처리 내역
+
+본 README는 아래 정보를 모두 **마스킹/일반화**하여 정리했습니다.
+
+- AWS 계정 ID
+- IAM 사용자명
+- 구체적인 ARN 원문
+- 요청 ID 등 추적 식별자
+
+권장 사항:
+- 계정 ID, Access Key, Secret Key, 내부 사용자명은 문서/스크린샷/코드에 직접 노출하지 않기
+- 예시가 필요할 때는 `<ACCOUNT_ID>`, `<IAM_USER>`, `<REGION>` 같은 플레이스홀더 사용
+
+---
+
+## 11) 향후 개선 제안
+
+- 환경변수 기반 테이블명/리전 분리 (`Employees` 하드코딩 제거)
+- `Query` 기반 조회(조건 확장)
+- 입력값 검증(공백, 길이 제한)
+- 예외 처리 및 사용자 친화적 에러 메시지 표준화
+- JUnit 테스트 추가 및 CI 파이프라인 연동
 
