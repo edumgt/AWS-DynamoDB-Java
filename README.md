@@ -208,3 +208,37 @@ mvn -q exec:java -Dexec.mainClass=MainApp
 - 예외 처리 및 사용자 친화적 에러 메시지 표준화
 - JUnit 테스트 추가 및 CI 파이프라인 연동
 
+
+---
+
+## 12) Python FastAPI 모듈 추가
+
+Spring Boot의 계층형 구조(Controller/Service/Repository)와 유사한 방식으로 `python-fastapi` 모듈을 추가했습니다.
+
+```text
+python-fastapi/
+├── app/
+│   ├── api/employee_router.py
+│   ├── services/employee_service.py
+│   ├── repositories/employee_repository.py
+│   ├── config/settings.py
+│   ├── config/database.py
+│   ├── models/employee.py
+│   └── main.py
+└── requirements.txt
+```
+
+실행:
+
+```bash
+cd python-fastapi
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+```
+
+환경변수:
+
+- `APP_AWS_REGION`
+- `APP_DYNAMODB_TABLE_NAME`
